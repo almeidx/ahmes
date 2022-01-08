@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #define MEMORY_SIZE 8
+#define MAX_STEPS MEMORY_SIZE * 2
 
 typedef enum Boolean { false, true } bool;
 
@@ -146,10 +147,13 @@ void step() {
       accumulator += memory[next()];
       break;
     case OR:
+      accumulator |= memory[next()];
       break;
     case AND:
+      accumulator &= memory[next()];
       break;
     case NOT:
+      accumulator = ~accumulator;
       break;
     case SUB:
       accumulator -= memory[next()];
@@ -158,16 +162,32 @@ void step() {
       programCounter = nextStepAddress("JMP");
       return;  // don't increment program counter
     case JN:
+      if (accumulator < 0) {
+        programCounter = nextStepAddress("JN");
+        return;  // don't increment program counter
+      }
       break;
     case JP:
+      if (accumulator > 0) {
+        programCounter = nextStepAddress("JP");
+        return;  // don't increment program counter
+      }
       break;
     case JV:
       break;
     case JNV:
       break;
     case JZ:
+      if (accumulator == 0) {
+        programCounter = nextStepAddress("JZ");
+        return;  // don't increment program counter
+      }
       break;
     case JNZ:
+      if (accumulator != 0) {
+        programCounter = nextStepAddress("JNZ");
+        return;  // don't increment program counter
+      }
       break;
     case JC:
       break;
@@ -178,8 +198,10 @@ void step() {
     case JNB:
       break;
     case SHR:
+      accumulator >>= memory[next()];
       break;
     case SHL:
+      accumulator <<= memory[next()];
       break;
     case ROR:
       break;
@@ -235,8 +257,13 @@ void main() {
 
   memory[7] = 4;
 
-  while (!halted) {
+  do {
     step();
+  } while (!halted || steps < MAX_STEPS);
+
+  if (steps >= MAX_STEPS) {
+    printf("fatal: program did not halt after %d steps\n", steps);
+    exit(1);
   }
 
   printMemory();
